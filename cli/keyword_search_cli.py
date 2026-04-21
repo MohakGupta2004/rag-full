@@ -1,19 +1,39 @@
 import argparse
-import json
+from typing import List
+from .tokenizer import tokenize
+from utils.load_json import load_json
+
+
+class InvertedIndex:
+    def __init__(self) -> None:
+        self.index:dict[str, int] = {}
+        self.docmap = {}
+    
+    def __add_documents(self, term):
+        pass
+    
+    def get_documents(self, term):
+        pass
+    
+    def build():
+        pass
+
 
 def has_similarity(query, text):
-    q = set(query.lower().split())
-    t = set(text.lower().split())
+    query_tokens:List[str] = tokenize(query)
+    text_tokens:List[str] = tokenize(text)
+    for q in query_tokens:
+        for t in text_tokens:
+            if q in t:
+                return True
+    return False
     
-    return len(q & t)>0
-
-
+   
 def search(keyword: str):
     result = []
-    with open("data/movies.json", "r") as movies_data:
-        d = json.load(movies_data)
-    for i in d["movies"]:
-        if(has_similarity(i["title"], keyword)):
+    movies = load_json()
+    for i in movies["movies"]:
+        if(has_similarity(keyword, i['title'])):
             result.append(i['title'])
         
     print(result)
