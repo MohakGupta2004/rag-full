@@ -2,8 +2,6 @@ import argparse
 from typing import List
 from .tokenizer import tokenize
 from utils.load_json import load_json
-
-
 class InvertedIndex:
     def __init__(self) -> None:
         self.index:dict[str, int] = {}
