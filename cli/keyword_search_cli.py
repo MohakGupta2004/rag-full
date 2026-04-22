@@ -1,5 +1,7 @@
 import argparse
-from operator import invert
+import pickle
+from operator import index, invert
+from pydoc import doc
 from typing import List
 
 from utils.dump_pkl import dump_pkl
@@ -35,6 +37,17 @@ class InvertedIndex:
     def save(self):
         dump_pkl(path="cache/index.pkl", data=self.index)
         dump_pkl(path="cache/docmap.pkl", data=self.docmap)
+    
+    def load(self):
+        try:
+           with open('cache/index.pkl', "rb") as f:
+               self.index = pickle.load(f)
+           with open('cache/docmap.pkl', 'rb') as f:
+               self.docmap = pickle.load(f)
+           
+        except FileNotFoundError:
+            print("Cache file not found")
+            return None, None
             
         
 
@@ -49,20 +62,26 @@ def has_similarity(query, text):
     
    
 def search(keyword: str):
-    result = []
-    movies = load_json()
-    for i in movies["movies"]:
-        if(has_similarity(keyword, i['title'])):
-            result.append(i['title'])
+    tokenized_keyword = tokenize(keyword)
+    inverted_index = InvertedIndex()
+    inverted_index.load()
+    result = set()
+    for token in tokenized_keyword:
+        doc_ids =inverted_index.index.get(token.lower(), set())
+        result.update(doc_ids)
         
-    print(result)
+        if len(doc_ids)>=5:
+            break
+    result = list(result)[:5]
+    for doc_id in result:
+        movie_names =inverted_index.docmap[doc_id]
+        print(movie_names['title'])
 
 def build():
     inverted_index = InvertedIndex()
     inverted_index.build()
     inverted_index.save()
-    docs = inverted_index.get_documents('merida')
-    print(f"First document for token 'merida' = {docs[0]}")
+    
 
 def main():
     parser = argparse.ArgumentParser(description="Keyword search tool")
