@@ -1,8 +1,5 @@
 import argparse
 import pickle
-from operator import index, invert
-from pydoc import doc
-from typing import List
 
 from utils.dump_pkl import dump_pkl
 from .tokenizer import tokenize
@@ -49,18 +46,6 @@ class InvertedIndex:
             print("Cache file not found")
             return None, None
             
-        
-
-def has_similarity(query, text):
-    query_tokens:List[str] = tokenize(query)
-    text_tokens:List[str] = tokenize(text)
-    for q in query_tokens:
-        for t in text_tokens:
-            if q in t:
-                return True
-    return False
-    
-   
 def search(keyword: str):
     tokenized_keyword = tokenize(keyword)
     inverted_index = InvertedIndex()
