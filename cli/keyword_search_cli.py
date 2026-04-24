@@ -1,13 +1,14 @@
 import argparse
 import pickle
-
 from utils.dump_pkl import dump_pkl
 from .tokenizer import tokenize
 from utils.load_json import load_json
+from collections import Counter
 class InvertedIndex:
     def __init__(self) -> None:
         self.index:dict[str, set[int]] = {}
         self.docmap = {}
+        self.term_frequencies = {}
     
     def __add_documents(self,doc_id, text):
         tokenized_text = tokenize(text)
@@ -34,6 +35,7 @@ class InvertedIndex:
     def save(self):
         dump_pkl(path="cache/index.pkl", data=self.index)
         dump_pkl(path="cache/docmap.pkl", data=self.docmap)
+        dump_pkl(path="cache/term_frequencies.pkl", data=self.term_frequencies)
     
     def load(self):
         try:
@@ -41,6 +43,8 @@ class InvertedIndex:
                self.index = pickle.load(f)
            with open('cache/docmap.pkl', 'rb') as f:
                self.docmap = pickle.load(f)
+           with open('cache/term_frequencies.pkl', 'rb') as f:
+               self.term_frequencies = pickle.load(f)  
            
         except FileNotFoundError:
             print("Cache file not found")
