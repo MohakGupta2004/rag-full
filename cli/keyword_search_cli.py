@@ -1,76 +1,103 @@
 import argparse
 import pickle
-from utils.dump_pkl import dump_pkl
-from .tokenizer import tokenize
-from utils.load_json import load_json
 from collections import Counter
+
+from utils.dump_pkl import dump_pkl
+from utils.load_json import load_json
+
+from .tokenizer import tokenize
+
+
 class InvertedIndex:
     def __init__(self) -> None:
-        self.index:dict[str, set[int]] = {}
+        self.index: dict[str, set[int]] = {}
         self.docmap = {}
         self.term_frequencies = {}
-    
-    def __add_documents(self,doc_id, text):
+
+    def __add_documents(self, doc_id, text):
         tokenized_text = tokenize(text)
+        if doc_id not in self.term_frequencies:
+            self.term_frequencies[doc_id] = Counter()
         for token in tokenized_text:
             if token not in self.index:
                 self.index[token] = set()
-            
+
             self.index[token].add(doc_id)
-    
+            self.term_frequencies[doc_id][token] += 1
+
     def get_documents(self, term):
         term = term.lower()
         if term not in self.index:
             return []
-            
+
         return sorted(self.index[term])
+
+
+    def get_tf(self, doc_id, term):
+        tokens = term.split()
     
+        if len(tokens) > 1:
+            raise Exception("More tokens are not allowed")
+    
+        token = tokens[0]
+        if doc_id not in self.term_frequencies:
+            return 0
+    
+        return self.term_frequencies[doc_id][token]
+
     def build(self):
         movies = load_json()
-        for m in movies['movies']:
-            doc_id = m['id']
+        for m in movies["movies"]:
+            doc_id = m["id"]
             self.docmap[doc_id] = m
-            self.__add_documents(doc_id, f"{m["title"]} {m["description"]}")
-    
+            self.__add_documents(doc_id, f"{m['title']} {m['description']}")
+
     def save(self):
         dump_pkl(path="cache/index.pkl", data=self.index)
         dump_pkl(path="cache/docmap.pkl", data=self.docmap)
         dump_pkl(path="cache/term_frequencies.pkl", data=self.term_frequencies)
-    
+
     def load(self):
         try:
-           with open('cache/index.pkl', "rb") as f:
-               self.index = pickle.load(f)
-           with open('cache/docmap.pkl', 'rb') as f:
-               self.docmap = pickle.load(f)
-           with open('cache/term_frequencies.pkl', 'rb') as f:
-               self.term_frequencies = pickle.load(f)  
-           
+            with open("cache/index.pkl", "rb") as f:
+                self.index = pickle.load(f)
+            with open("cache/docmap.pkl", "rb") as f:
+                self.docmap = pickle.load(f)
+            with open("cache/term_frequencies.pkl", "rb") as f:
+                self.term_frequencies = pickle.load(f)
+
         except FileNotFoundError:
             print("Cache file not found")
             return None, None
-            
+
+
 def search(keyword: str):
     tokenized_keyword = tokenize(keyword)
     inverted_index = InvertedIndex()
     inverted_index.load()
     result = set()
     for token in tokenized_keyword:
-        doc_ids =inverted_index.index.get(token.lower(), set())
+        doc_ids = inverted_index.index.get(token.lower(), set())
         result.update(doc_ids)
-        
-        if len(doc_ids)>=5:
+
+        if len(doc_ids) >= 5:
             break
     result = list(result)[:5]
     for doc_id in result:
-        movie_names =inverted_index.docmap[doc_id]
-        print(movie_names['title'])
+        movie_names = inverted_index.docmap[doc_id]
+        print(movie_names["title"])
+
 
 def build():
     inverted_index = InvertedIndex()
     inverted_index.build()
     inverted_index.save()
-    
+
+def tf(doc_id:int, term: str):
+    inverted_index = InvertedIndex()
+    inverted_index.load()
+    print(inverted_index.get_tf(doc_id=doc_id, term=term))
+
 
 def main():
     parser = argparse.ArgumentParser(description="Keyword search tool")
@@ -79,8 +106,11 @@ def main():
     )
     search_command = sub_parsers.add_parser(name="search", help="Search movies")
     build_command = sub_parsers.add_parser(name="build", help="Build inverted index")
+    tf_command = sub_parsers.add_parser(name="tf", help="search term frequencies")
 
     search_command.add_argument("query", type=str, help="Movie name")
+    tf_command.add_argument("doc_id", type=int, help="doc_id")
+    tf_command.add_argument("term", type=str, help="Term")
 
     args = parser.parse_args()
 
@@ -90,6 +120,9 @@ def main():
             pass
         case "build":
             build()
+            pass
+        case "tf":
+            tf(args.doc_id, args.term)
             pass
         case _:
             parser.print_help()
